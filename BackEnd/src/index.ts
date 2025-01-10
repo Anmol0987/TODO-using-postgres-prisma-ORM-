@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { z } from "zod"
 import { PrismaClient } from "@prisma/client";
 import jwt from 'jsonwebtoken';
@@ -7,6 +8,7 @@ import { authMiddleware } from "./authMiddleWare";
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 const prisma = new PrismaClient();
 
 const userSchema = z.object({
@@ -60,50 +62,44 @@ app.post('/signin', async (req, res) => {
 
 })
 //@ts-ignore
-app.post("/todo/:id", authMiddleware, async (req, res) => {
-
-    const id = req.params.id;
-    console.log(id);
+app.post("/todo", authMiddleware, async (req, res) => {
+    //@ts-ignore
+    const userid = req.userId
+    console.log(userid);
     const result = todoSchema.safeParse(req.body)
     if (!result.success) {
         return res.status(400).json({ error: "Invalid data" })
     }
     else {
-        const todo = await prisma.todo.create({
-            data: {
-                title: result.data.title,
-                description: result.data.description,
-                Done: result.data.Done,
-                userId: Number(id)
-            }
+        const user = await prisma.user.findFirst({
+            where: {
+                Id: Number(userid)
+            },
         });
-        res.json(todo);
-
+        if (user) {
+            const todo = await prisma.todo.create({
+                data: {
+                    title: result.data.title,
+                    description: result.data.description,
+                    Done: result.data.Done,
+                    userId: Number(userid)
+                }
+            });
+            res.json(todo);
+        }
     }
 })
 
-app.get("/todo/:id", authMiddleware, async (req, res) => {
-    const id = req.params.id
+app.get("/todo", authMiddleware, async (req, res) => {
+    //@ts-ignore
+    const id = req.userId
+    console.log(id);
     const todo = await prisma.todo.findMany({
         where: {
             userId: Number(id)
         }
     });
     res.json(todo);
-})
-
-app.get("/user/:id", authMiddleware, async (req, res) => {
-    const id = req.params.id
-    const user = await prisma.user.findMany({
-        where: {
-            Id: Number(id)
-        },
-       select: {
-        username: true,
-        todos: true
-       }
-    });
-    res.json(user);
 })
 
 app.listen(3000, () => {
