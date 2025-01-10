@@ -93,12 +93,13 @@ app.post("/todo", authMiddleware, async (req, res) => {
 app.get("/todo", authMiddleware, async (req, res) => {
     //@ts-ignore
     const id = req.userId
-    console.log(id);
+    // console.log(id);
     const todo = await prisma.todo.findMany({
         where: {
             userId: Number(id)
         }
     });
+    console.log(todo)
     res.json(todo);
 })
 
